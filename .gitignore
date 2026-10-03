@@ -1,0 +1,16 @@
+# SwiftPM
+.build/
+.swiftpm/
+Package.resolved
+
+# Xcode. The demo's .xcodeproj is generated from project.yml but committed, so
+# it opens without XcodeGen; only per-user state is ignored.
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+*.xcscmblueprint
+*.xccheckout
+
+# macOS
+.DS_Store

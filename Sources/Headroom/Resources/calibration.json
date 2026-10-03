@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "bandwidth": [
+    {
+      "soc": "A15 Bionic",
+      "device": "iPhone 13 (iPhone14,5), iOS 26.6.1 (23G83)",
+      "decodeTokPerSec": 42.8012,
+      "tensorBytes": 635990016,
+      "achievedGBps": 27.221,
+      "ceilingGBps": null,
+      "source": "pocketroofline results/iphone13-a15-ios26.6.1-23G83-llamacpp-tinyllama1.1b-q4_0-siso.json: mean of the five SISO decode repeats (42.597, 42.439, 42.575, 43.202, 43.193), llama.cpp-Metal 95ef7fc, warm start, unplugged",
+      "ceilingSource": null
+    },
+    {
+      "soc": "Apple M1",
+      "device": "MacBook Pro (M1, 2020) (MacBookPro17,1), macOS 27.0 (26A5421a)",
+      "decodeTokPerSec": 61.1016,
+      "tensorBytes": 635990016,
+      "achievedGBps": 38.860,
+      "ceilingGBps": 56.000,
+      "source": "pocketroofline results/m1-macos27-26A5421a-llamacpp-tinyllama1.1b-q4_0-siso.json: mean of the five SISO decode repeats (59.729, 62.786, 59.816, 60.7, 62.477), llama-bench tg128, llama.cpp-Metal 95ef7fc, mains power",
+      "ceilingSource": "headroom-probe 0.1.0 on the same MacBookPro17,1, 2026-10-03T19:50Z, macOS 27.0 (26A428), battery power, thermal nominal: median of the Metal triad medians of three consecutive runs (56.333, 56.000, 53.633 GB/s); records in Calibration/runs/"
+    }
+  ],
+  "sustained": [
+    {
+      "soc": "A15 Bionic",
+      "platform": "iOS",
+      "runtime": "llama.cpp-Metal",
+      "peakTokPerSec": 42.8012,
+      "sustainedTokPerSec": 30.933,
+      "protocol": "SISO mean (128 in / 128 out, five repeats) versus the fifth consecutive 1024-token generation of the SILO regime, same session",
+      "source": "pocketroofline results/iphone13-a15-ios26.6.1-23G83-llamacpp-tinyllama1.1b-q4_0-{siso,silo}.json"
+    },
+    {
+      "soc": "A18 Pro",
+      "platform": "iOS",
+      "runtime": "MLX",
+      "peakTokPerSec": 40.49,
+      "sustainedTokPerSec": 23.67,
+      "protocol": "first versus twentieth consecutive run, Qwen 2.5 1.5B, iPhone 16 Pro",
+      "source": "arXiv:2603.23640"
+    }
+  ]
+}
