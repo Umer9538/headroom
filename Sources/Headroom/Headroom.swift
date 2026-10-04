@@ -28,7 +28,12 @@ public enum Headroom {
         try Task.checkCancellation()
         var gpu: GPUBandwidth?
         if options.runsGPUProbe {
-            if let refusal = memory.refusal(allocating: 3 * options.gpuArrayBytes) {
+            if device.isSimulator {
+                // The simulator's command-buffer timestamps do not bracket the GPU
+                // work (128 MB dispatches report tens of microseconds), so any
+                // figure would be thousands of GB/s of nonsense labelled measured.
+                warnings.append("GPU probe skipped: Metal timestamps in the iOS Simulator do not measure GPU work.")
+            } else if let refusal = memory.refusal(allocating: 3 * options.gpuArrayBytes) {
                 warnings.append("GPU probe skipped: \(refusal)")
             } else {
                 let probe = MetalBandwidthProbe(

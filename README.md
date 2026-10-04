@@ -130,7 +130,9 @@ The full CLI output for this row is in the section below.
 - **Budget**: a probe never allocates past the budget the OS reports, because
   iOS enforces it by killing the process rather than failing the call. If the
   three arrays would not fit, that probe is skipped and the warning says so.
-  In the simulator a warning says the figures are the host Mac's.
+  In the simulator a warning says the figures are the host Mac's, and the GPU
+  probe is skipped: the simulator's Metal timestamps do not bracket GPU work,
+  so any figure would be nonsense labelled measured.
 - **Concurrency**: `Headroom.probe` never runs on the main actor; blocking
   work goes to a Dispatch queue so the cooperative pool stays free, and
   cancelling the task stops the probe at the next kernel boundary.
