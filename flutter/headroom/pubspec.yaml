@@ -1,0 +1,39 @@
+name: headroom
+description: A two-second on-device probe that tells your app how fast an LLM of a given size will decode on this phone, whether it fits, and on what basis.
+version: 0.1.0
+repository: https://github.com/Umer9538/headroom/tree/main/flutter/headroom
+issue_tracker: https://github.com/Umer9538/headroom/issues
+topics:
+  - llm
+  - on-device-ai
+  - benchmark
+  - memory-bandwidth
+  - inference
+
+environment:
+  sdk: ^3.13.0
+  flutter: '>=3.47.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.umer9538.headroom
+        pluginClass: HeadroomPlugin
+      ios:
+        pluginClass: HeadroomPlugin
+
+  # A copy of the Swift core's Sources/Headroom/Resources/calibration.json,
+  # kept identical by tool/sync_native.sh. Every calibrated constant the
+  # estimator uses is computed from these rows at run time.
+  assets:
+    - assets/calibration.json

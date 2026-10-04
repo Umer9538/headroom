@@ -1,0 +1,4 @@
+module CHeadroom {
+    header "include/headroom.h"
+    export *
+}

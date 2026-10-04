@@ -1,0 +1,28 @@
+PODS:
+  - Flutter (1.0.0)
+  - headroom (0.1.0):
+    - Flutter
+  - integration_test (0.0.1):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - headroom (from `.symlinks/plugins/headroom/ios`)
+  - integration_test (from `.symlinks/plugins/integration_test/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  headroom:
+    :path: ".symlinks/plugins/headroom/ios"
+  integration_test:
+    :path: ".symlinks/plugins/integration_test/ios"
+
+SPEC CHECKSUMS:
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
+  headroom: b341457768b36994538fe7b86ab7fcb110f0300f
+  integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
+
+PODFILE CHECKSUM: 4fe4d21d71bd156d8bd6837c9957fe95d7c05696
+
+COCOAPODS: 1.16.2
