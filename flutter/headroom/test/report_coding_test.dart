@@ -131,21 +131,24 @@ void main() {
         contextTokens: 128,
       );
       expect(estimate.bytesPerToken, 638873600);
-      expect(estimate.peak.basis, const Basis.calibrated(devices: 1));
+      expect(estimate.peak.basis, const Basis.calibrated(devices: 2));
       expect(estimate.sustained, isNull);
       expect(estimate.fit.basis, Basis.unknown);
-      // η = 38.860 / 56.000 over the run's CI of 55.87–57.94 GB/s.
-      final eta = 38.860 / 56.000;
+      // η spans the M1 (38.860 / 56.000) and the A16 (41.444 / 45.317), over
+      // the run's CI of 55.87–57.94 GB/s. The M1 is a calibration device, so
+      // this estimate is in-sample.
+      final etaM1 = 38.860 / 56.000;
+      final etaA16 = 41.444 / 45.317;
       expect(
         estimate.peak.low,
-        closeTo(55.8748375568939 * eta * 1e9 / 638873600, 1e-9),
+        closeTo(55.8748375568939 * etaM1 * 1e9 / 638873600, 1e-9),
       );
       expect(
         estimate.peak.high,
-        closeTo(57.936752123452266 * eta * 1e9 / 638873600, 1e-9),
+        closeTo(57.936752123452266 * etaA16 * 1e9 / 638873600, 1e-9),
       );
       expect(estimate.peak.low, inInclusiveRange(60, 62));
-      expect(estimate.peak.high, inInclusiveRange(62, 64));
+      expect(estimate.peak.high, inInclusiveRange(82, 84));
     });
   });
 }

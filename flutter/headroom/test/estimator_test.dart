@@ -32,6 +32,107 @@ void main() {
     expect((achieved - 38.860).abs(), lessThan(0.001));
   });
 
+  test('A16 achieved bandwidth reproduces', () {
+    final decode = Fixtures.mean(Fixtures.a16DecodeRates('SISO'));
+    expect((decode - 65.1648).abs(), lessThan(0.5e-4));
+    final achieved = Calibration.achievedGBps(
+      decodeTokPerSec: decode,
+      bytesPerToken: Fixtures.tensorBytes,
+    );
+    expect((achieved - 41.444).abs(), lessThan(0.5e-3));
+  });
+
+  group('the iPhone 15 Plus', () {
+    // The calibration as it stood when the prediction was pre-registered:
+    // the shipped rows without the A16's.
+    Calibration before() {
+      final shipped = Calibration.shipped!;
+      return Calibration(
+        bandwidth: [
+          for (final row in shipped.bandwidth)
+            if (row.soc != 'A16 Bionic') row,
+        ],
+        sustained: [
+          for (final row in shipped.sustained)
+            if (row.soc != 'A16 Bionic') row,
+        ],
+      );
+    }
+
+    // The probe the pre-registered rule selects: of the first three, the
+    // one whose GPU triad median is the middle value.
+    ProbeReport preRegisteredReport() {
+      final firstThree = Fixtures.a16Probes().take(3).toList();
+      final middle = Fixtures.ceilingGBps(firstThree);
+      return firstThree.firstWhere(
+        (report) => report.gpu!.triad.medianGBps.value == middle,
+      );
+    }
+
+    double hundredths(double value) => (value * 100).round() / 100;
+
+    /// Calibration/predictions/2026-10-05-iphone15plus-a16.md in the Swift
+    /// core, reproduced from the committed records: the n = 1 prediction
+    /// and the measured rates it missed.
+    test('the pre-registered prediction reproduces, and missed', () {
+      final report = preRegisteredReport();
+      expect(report.capturedAt, DateTime.utc(2026, 10, 5, 1, 5, 33));
+      expect(before().efficiency.basis, const Basis.calibrated(devices: 1));
+
+      final peak = report
+          .estimate(
+            ModelSpec.tinyLlama1_1BQ4_0,
+            contextTokens: 128,
+            calibration: before(),
+          )
+          .peak;
+      expect(hundredths(peak.low), 48.15);
+      expect(hundredths(peak.high), 49.34);
+
+      final measured = Fixtures.mean(Fixtures.a16DecodeRates('SISO'));
+      expect(measured, greaterThan(peak.high));
+      expect(((measured / peak.high - 1) * 1000).round() / 10, 32.1);
+
+      final sustained = report
+          .estimate(
+            ModelSpec.tinyLlama1_1BQ4_0,
+            contextTokens: 1024,
+            calibration: before(),
+          )
+          .sustained!;
+      expect(hundredths(sustained.low), 27.29);
+      expect(hundredths(sustained.high), 34.57);
+      expect(Fixtures.a16DecodeRates('SILO').last, lessThan(sustained.low));
+    });
+
+    /// Adding the A16 leaves every lower bound where the M1 alone put it and
+    /// raises every upper bound by η(A16) / η(M1). On the A16's own probe the
+    /// new estimate is in-sample.
+    test('the A16 widens every interval by the efficiency ratio', () {
+      final report = preRegisteredReport();
+      final after = Calibration.shipped!;
+      final ratio = after.efficiency.high / before().efficiency.high;
+      expect(after.efficiency.low, before().efficiency.low);
+      expect(ratio, inExclusiveRange(1.3, 1.35));
+
+      for (final context in [0, 128, 1024, 2048]) {
+        final old = report
+            .estimate(
+              ModelSpec.tinyLlama1_1BQ4_0,
+              contextTokens: context,
+              calibration: before(),
+            )
+            .peak;
+        final updated = report
+            .estimate(ModelSpec.tinyLlama1_1BQ4_0, contextTokens: context)
+            .peak;
+        expect(updated.low, old.low);
+        expect((updated.high / old.high - ratio).abs(), lessThan(1e-12));
+        expect(updated.basis, const Basis.calibrated(devices: 2));
+      }
+    });
+  });
+
   test('KV cache bytes follow the formula', () {
     const model = ModelSpec.tinyLlama1_1BQ4_0;
     // 2 (K and V) × 22 layers × 4 KV heads × 64 head dim × 2 bytes (f16)

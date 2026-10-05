@@ -55,6 +55,26 @@ import Testing
         }
     }
 
+    /// The iPhone 15 Plus probes are calibration records too: the A16 ceiling
+    /// is their median, and the pre-registered prediction was made from one.
+    @Test func committedA16ProbesDecode() throws {
+        let probes = try Fixtures.a16Probes()
+        #expect(probes.count == 4)
+        for report in probes {
+            let gpu = try #require(report.gpu)
+            #expect(report.device.identifier == "iPhone15,5")
+            #expect(report.device.platform == .iOS)
+            #expect(report.device.osBuild == "24A437")
+            #expect(report.conditions.thermalState == .fair)
+            #expect(report.conditions.powerSource == .battery)
+            #expect(!report.conditions.isLowPowerModeEnabled)
+            #expect(gpu.triad.verified)
+            #expect(gpu.triad.medianGBps.basis == .measured)
+            #expect(report.memory.availableBytes.basis == .measured)
+            #expect(report.warnings.isEmpty)
+        }
+    }
+
     @Test func basisEncodesItsKindAndDeviceCount() throws {
         let data = try JSONEncoder().encode(Basis.calibrated(devices: 2))
         let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:headroom/headroom.dart';
@@ -29,6 +30,51 @@ abstract final class Fixtures {
   /// The real M1 run the Swift core committed to `Calibration/runs/`.
   static String m1Run1Json() =>
       File('test/fixtures/m1-run1.json').readAsStringSync();
+
+  /// The PocketRoofline app capture on the iPhone 15 Plus that the A16
+  /// decode and sustained rows come from, copied unchanged from the Swift
+  /// core's `Calibration/runs/a16/`.
+  static Map<String, Object?> a16Capture() => jsonDecode(
+    File('test/fixtures/a16-pocketroofline-1791162656.json').readAsStringSync(),
+  ) as Map<String, Object?>;
+
+  /// Decode rates of every repeat of [label] (SISO, LISO, SILO) in the A16
+  /// capture, in run order.
+  static List<double> a16DecodeRates(String label) {
+    final regimes = (a16Capture()['regimes']! as List<Object?>)
+        .cast<Map<String, Object?>>();
+    final regime = regimes.firstWhere((regime) => regime['label'] == label);
+    return [
+      for (final repeat
+          in (regime['repeats']! as List<Object?>).cast<Map<String, Object?>>())
+        (repeat['decodeTokensPerSec']! as num).toDouble(),
+    ];
+  }
+
+  /// The four Headroom demo probes on the same iPhone that the A16 ceiling
+  /// comes from, copied unchanged from `Calibration/runs/a16/`, in capture
+  /// order.
+  static List<ProbeReport> a16Probes() {
+    final files =
+        Directory('test/fixtures')
+            .listSync()
+            .whereType<File>()
+            .where(
+              (file) => file.uri.pathSegments.last.startsWith('a16-probe-'),
+            )
+            .toList()
+          ..sort((a, b) => a.path.compareTo(b.path));
+    return [
+      for (final file in files)
+        ProbeReport.fromJsonString(file.readAsStringSync()),
+    ];
+  }
+
+  /// The median of the reports' GPU triad medians: how a ceiling row is
+  /// derived.
+  static double ceilingGBps(List<ProbeReport> reports) => Statistics.median([
+    for (final report in reports) report.gpu!.triad.medianGBps.value,
+  ]);
 
   static BandwidthFigure figure({
     StreamKernel kernel = StreamKernel.triad,

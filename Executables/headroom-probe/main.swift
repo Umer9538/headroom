@@ -75,6 +75,22 @@ print("  basis: peak \(example.peak.basis); efficiency η = \(efficiency)")
 for note in example.notes {
     print("  note: \(note)")
 }
+// A device whose own measurements are in the calibration gets an in-sample
+// estimate: it can show that the arithmetic closes, not that the method predicts.
+if let row = Calibration.shipped.bandwidth.first(where: { $0.device.contains("(\(device.identifier))") }) {
+    var parts: [String] = []
+    if row.ceilingGBps != nil {
+        parts.append("η")
+    }
+    if Calibration.shipped.sustained.contains(where: { $0.soc == row.soc && $0.platform == device.platform }) {
+        parts.append("the sustained factor")
+    }
+    if !parts.isEmpty {
+        print("  note: in-sample: \(device.identifier) is a calibration device (\(row.soc)), so "
+            + "\(parts.joined(separator: " and ")) \(parts.count == 1 ? "includes" : "include") its own measurements; "
+            + "this estimate checks the arithmetic, not the method.")
+    }
+}
 if device.chip == "Apple M1" {
     print()
     print("PocketRoofline measured on an M1 MacBook Pro, same model and quantisation (llama-bench, tg128 / tg1024):")

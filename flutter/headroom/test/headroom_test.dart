@@ -51,7 +51,7 @@ void main() {
       ModelSpec.tinyLlama1_1BQ4_0,
       contextTokens: 1024,
     );
-    expect(estimate.peak.basis, const Basis.calibrated(devices: 1));
+    expect(estimate.peak.basis, const Basis.calibrated(devices: 2));
     expect(Headroom.isProbing, isFalse);
   });
 

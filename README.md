@@ -25,7 +25,7 @@ let report = try await Headroom.probe()          // ~1–2 s, off the main actor
 report.ceilingGBps                                // Quantity(value: 54.7, basis: .measured)
 
 let estimate = report.estimate(.tinyLlama1_1BQ4_0, contextTokens: 1024)
-estimate.peak        // Interval(low: 55.7, high: 58.2, basis: .calibrated(devices: 1))  tok/s
+estimate.peak        // Interval(low: 55.7, high: 76.7, basis: .calibrated(devices: 2))  tok/s
 estimate.sustained   // Interval? — nil on macOS; .calibrated(devices: 2) on iPhone
 estimate.fit         // .fits(marginMB: 2810), basis .measured on iOS
 
@@ -42,7 +42,7 @@ Single-stream decode is memory-bound: each token reads every weight once plus
 the KV cache for every token already in context.
 
     bytesPerToken  = tensorBytes + 2 × layers × kvHeads × headDim × contextTokens × 2   (f16 KV, llama.cpp's default)
-    achievedGBps   = decodeTokPerSec × bytesPerToken / 1e9                              (PocketRoofline's placement)
+    achievedGBps   = decodeTokPerSec × tensorBytes / 1e9                                (PocketRoofline's placement: weights only, no KV term)
     η              = achievedGBps / measuredCeilingGBps                                 (per calibration device)
     peak tok/s     = measuredCeilingGBps × η / bytesPerToken      as an interval over the ceiling's 95% CI and min…max η
     sustained      = peak × sustainedFactor                        as an interval over the measured phones
@@ -64,38 +64,89 @@ the arithmetic row by row.
 |---|---|---|---|---|---|
 | A15 Bionic (iPhone 13) | 42.8012 | 27.221 | **pending** (null) | — | PocketRoofline SISO, warm start, unplugged |
 | Apple M1 (MacBook Pro 2020) | 61.1016 | 38.860 | 56.000 (median of 3 runs: 56.333, 56.000, 53.633) | 0.6939 | PocketRoofline SISO (llama-bench tg128); ceiling from `headroom-probe` on the same machine, [`Calibration/runs/`](Calibration/runs/) |
+| A16 Bionic (iPhone 15 Plus) | 65.1648 | 41.444 | 45.317 (median of 4 probes: 45.888, 45.312, 45.049, 45.321) | 0.9145 | PocketRoofline app SISO, warm start (thermal fair), live UI on screen, battery, airplane mode; ceiling from the Headroom demo on the same phone, [`Calibration/runs/a16/`](Calibration/runs/a16/) |
 
-Efficiency basis today: `calibrated(devices: 1)`. The A15 row is filled only
-by running the demo app on the iPhone 13 that produced the decode figure.
+Efficiency basis today: `calibrated(devices: 2)`, η = 0.6939–0.9145. The two
+devices disagree: decode used 69% of the measured ceiling on the M1 and 91% on
+the A16. The estimator keeps the whole range rather than an average, so every
+prediction is wider than it was with the M1 alone, on macOS and iOS alike:
+each lower bound is unchanged and each upper bound is 1.32 × higher
+(0.9145 / 0.6939). That width is how little two devices pin η down. The A16
+row was added after the phone's one out-of-sample test (see
+[Validation](#validation)). The A15 row is filled only by running the demo app
+on the iPhone 13 that produced the decode figure.
 
 | Sustained factor | Peak → sustained | Factor | Source |
 |---|---|---|---|
 | A15 Bionic, llama.cpp-Metal | 42.80 → 30.93 after 5 × 1024-token generations | 0.7227 | PocketRoofline SILO |
 | A18 Pro (iPhone 16 Pro), MLX | 40.49 → 23.67 over 20 runs | 0.5846 | arXiv:2603.23640 |
+| A16 Bionic (iPhone 15 Plus), llama.cpp-Metal | 65.16 → 27.16 on the 5th 1024-token generation, run straight after LISO | 0.4169 | PocketRoofline app SILO; the step into it is unexplained |
 
-Basis `calibrated(devices: 2)`, two runtimes, two models — it is a throttling
-range, not a prediction of any particular phone's curve. Applied on iOS only.
+Basis `calibrated(devices: 3)`, three phones, two runtimes, two models — it is
+a throttling range, not a prediction of any particular phone's curve. Applied
+on iOS only. The A16 factor is the lowest and the least understood: decode
+fell from 59.17 tok/s (last LISO repeat) to 29.69 tok/s (first SILO repeat)
+within seconds, at the boundary between the two regimes, while prefill rose. A
+plain thermal slowdown would have pulled prefill down too. This is not yet
+explained, and a SILO-first cold run is owed. The row is included because it
+widens the range, and a range that is too wide is the safer error.
 
 ## Validation
 
-Real rows only. Predictions are at the context the measured regime used.
+Real rows only. Predictions are at the context the measured regime used, and
+each row says which calibration made the prediction and whether the device
+was part of it.
 
-| Device | Conditions | Ceiling (triad median, 95% CI) | CPU triad | Model, context | Predicted tok/s | Measured tok/s | Error |
-|---|---|---|---|---|---|---|---|
-| MacBook Pro (M1, 2020), macOS 27.0 (26A428), 2026-10-03T20:14Z | battery power, thermal nominal, low power off | 54.7 GB/s (52.9 – 55.3) | 51.5 GB/s (4 threads; 46.7 with 8) | TinyLlama-1.1B Q4_0, 128 tokens | 57.5 – 60.0 | 61.10 (SISO, llama-bench tg128) | measured is 1.8% above the upper bound; midpoint −3.8% |
-| same run | | | | TinyLlama-1.1B Q4_0, 1024 tokens | 55.7 – 58.2 | 64.55 (SILO, llama-bench tg1024) | measured is 10.9% above the upper bound; midpoint −11.7% |
-| iPhone 13 (A15), iOS 26.6.1 | | pending | pending | TinyLlama-1.1B Q4_0 | pending | 42.80 (SISO) / 30.93 sustained | pending |
+| Test | Device | Conditions | Ceiling (triad median, 95% CI) | CPU triad | Model, context | Predicted tok/s | Measured tok/s | Error |
+|---|---|---|---|---|---|---|---|---|
+| **Out-of-sample**, [pre-registered](Calibration/predictions/2026-10-05-iphone15plus-a16.md); calibration n = 1 (the M1 only) | iPhone 15 Plus (A16), iOS 27.0 (24A437), 2026-10-05T01:05Z | battery 60%, airplane mode, thermal fair (the rule asked for nominal), low power off | 45.3 GB/s (44.3 – 45.4) | 41.5 GB/s (6 threads; 37.9 with 2) | TinyLlama-1.1B Q4_0, 128 tokens | 48.15 – 49.34 | 65.16 (SISO mean of 5, PocketRoofline app) | **miss**: measured is 32.1% above the upper bound; midpoint −25.2% |
+| same run, secondary range check | | | | | TinyLlama-1.1B Q4_0, 1024 tokens, sustained | 27.29 – 34.57 | 27.16 (last SILO repeat) | **miss**: measured is 0.45% below the lower bound |
+| Consistency check (in-sample); calibration n = 1 (this M1) | MacBook Pro (M1, 2020), macOS 27.0 (26A428), 2026-10-03T20:14Z | battery power, thermal nominal, low power off | 54.7 GB/s (52.9 – 55.3) | 51.5 GB/s (4 threads; 46.7 with 8) | TinyLlama-1.1B Q4_0, 128 tokens | 57.5 – 60.0 | 61.10 (SISO, llama-bench tg128) | measured is 1.8% above the upper bound; midpoint −3.8% |
+| same run | | | | | TinyLlama-1.1B Q4_0, 1024 tokens | 55.7 – 58.2 | 64.55 (SILO, llama-bench tg1024) | measured is 10.9% above the upper bound; midpoint −11.7% |
+| pending | iPhone 13 (A15), iOS 26.6.1 | | pending | pending | TinyLlama-1.1B Q4_0 | pending | 42.80 (SISO) / 30.93 sustained | pending |
 
-Two honest caveats on the M1 row. First, it is a consistency check, not an
-independent validation: with `n = 1` the efficiency was calibrated on this same
-machine, so the prediction can only drift from the measurement by the
-ceiling's run-to-run variation and by the KV term. This run's ceiling was
-54.7 GB/s against the 56.0 calibrated (−2.2%), which accounts for the
-128-token miss; the next two runs of the same session measured 55.4 and
-57.2 GB/s and predicted 58.3 – 62.9 and 57.1 – 62.9 tok/s at 128 tokens, both
-bracketing 61.10. The row is the session's first run, not its best. The first
-independent test is the iPhone 13. Second, the SILO under-prediction is real
-and not understood: `llama-bench` measured decode faster over 1024 tokens
+The iPhone 15 Plus figures are computed from the committed records, and
+`EstimatorTests` reproduces them. The prediction document's result first said
+65.17 tok/s and 0.5%. It was corrected the same day, with a visible note, to the
+exact 65.16 (65.1648) and 0.45%. Both misses stand either way.
+
+### What the first phone test showed
+
+The first out-of-sample test was an iPhone 15 Plus, predicted before any model
+ran on it, under a rule fixed in advance
+([prediction and result](Calibration/predictions/2026-10-05-iphone15plus-a16.md)).
+It missed: the probe gave 48.15–49.34 tok/s and the phone decoded at
+65.16 tok/s, 32.1% above the top of the range. The cause is η, the share of
+the measured memory bandwidth that decode actually uses. It had been
+calibrated on one machine, an M1 laptop, where decode used 69% of it; on the
+phone it used 91%. The phone is now the second calibration device, so η is
+the range 0.694–0.915 and every prediction is wider, its upper bound raised by
+32%. Having helped set η, this phone can no longer test it. The next
+out-of-sample test is the next phone.
+
+**In-sample, after the change.** With the A16 in the calibration,
+`headroom-probe --from` the probe the rule selected
+(`Calibration/runs/a16/headroom-iPhone15,5-1791162333.json`) gives
+48.2–65.0 tok/s at 128 tokens. That is an in-sample figure, not a validation:
+the top of η is this phone's own value, so it checks only the arithmetic. It
+still stops 0.2% short of the measured 65.16, because η is computed from
+weight bytes alone (as PocketRoofline does) while the estimate also charges
+the 128 tokens of KV cache, 0.45% of the bytes per token, and this probe's
+ceiling interval reaches only 0.24% above the calibrated 45.317 GB/s.
+
+Two caveats on the M1 rows. First, they are a consistency check, not an
+independent validation: the efficiency was calibrated on this same machine
+(n = 1 when the rows were made), so the prediction can only drift from the
+measurement by the ceiling's run-to-run variation and by the KV term. This
+run's ceiling was 54.7 GB/s against the 56.0 calibrated (−2.2%), which
+accounts for the 128-token miss; the next two runs of the same session
+measured 55.4 and 57.2 GB/s and predicted 58.3 – 62.9 and 57.1 – 62.9 tok/s at
+128 tokens, both bracketing 61.10. The row is the session's first run, not its
+best. With today's n = 2 calibration the same run gives 57.5 – 79.1 tok/s at
+128 tokens and 55.7 – 76.7 at 1024, still in-sample. Those contain 61.10 and
+64.55 only because the upper bound rose by 32%; that is width, not accuracy,
+so the rows keep the figures published at the time. Second, the SILO
+under-prediction is real and not understood: `llama-bench` measured decode faster over 1024 tokens
 than over 128, while the model charges the larger context for its KV reads,
 so the two move in opposite directions. A fixed per-run cost being amortised
 over the longer generation would explain it, but that has not been measured.
@@ -169,6 +220,13 @@ PocketRoofline measured on an M1 MacBook Pro, same model and quantisation (llama
 0.54 s with the shaders already cached — a device's first run also compiles
 them and takes longer.)
 
+This transcript predates the A16 row and was printed with the n = 1
+calibration. With today's calibration the same report would print every peak
+upper bound 1.32 × higher, the basis line as
+`peak calibrated (n=2); efficiency η = 0.6939–0.9145 (calibrated (n=2))`, and
+a further note that the estimate is in-sample, because the M1 is a
+calibration device.
+
 ## Memory fit
 
 `required = tensorBytes × 1.1 + kvBytes(context) + 150 MB`, compared with the
@@ -200,11 +258,14 @@ way here.
   thread counts, not a statement about any particular backend's threading.
 - **No ANE claims.** Apple publishes no bandwidth or throughput for the
   Neural Engine and exposes no counters; nothing here estimates Core ML on it.
-- **Calibrated on n = 1 device today**, the M1, which is also the only
-  validation device so far. The A15 row and the first independent validation
-  are pending the iPhone 13 run.
-- **The thermal factor is from two phones on two runtimes** and two models,
-  presented as a range. It is not a model of any particular device's curve.
+- **Calibrated on n = 2 devices**, the M1 and the A16, whose η differ by a
+  factor of 1.32 (0.694 and 0.915); every interval carries that whole spread.
+  One out-of-sample test has been run, on the A16 before it joined the
+  calibration, and it missed by 32%. The A15 row is pending the iPhone 13 run.
+- **The thermal factor is from three phones on two runtimes** and two models,
+  presented as a range. It is not a model of any particular device's curve,
+  and its lowest value, the A16's, comes from a step at a regime boundary that
+  is not yet explained.
 - **Model geometry must be verified.** A `ModelSpec` built from file size
   alone omits the KV cache; the estimate says so.
 - **Debug builds** compile the C target without optimisation, which spills
@@ -257,7 +318,7 @@ Sources/Headroom/             Swift 6: probe, report, estimator, calibration loa
 Sources/Headroom/Resources/   calibration.json
 Executables/headroom-probe/   macOS CLI
 Examples/HeadroomDemo/        SwiftUI demo (XcodeGen project.yml)
-Calibration/                  derivation of every constant, and the raw ceiling runs
+Calibration/                  derivation of every constant, the raw runs, pre-registered predictions
 Tests/HeadroomTests/          estimator, accounting, statistics, calibration, fit, coding, live probe
 ```
 

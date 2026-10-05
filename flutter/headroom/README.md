@@ -28,7 +28,7 @@ final report = await Headroom.probe();            // one to two seconds, off the
 report.ceilingGBps;                               // Quantity(54.7, basis: measured) on iOS; null on Android
 
 final estimate = report.estimate(ModelSpec.tinyLlama1_1BQ4_0, contextTokens: 1024);
-estimate.peak;        // Interval [55.7, 58.2] tok/s, basis calibrated (n=1) on iOS; unknown on Android
+estimate.peak;        // Interval [55.7, 76.7] tok/s, basis calibrated (n=2) on iOS; unknown on Android
 estimate.sustained;   // Interval? — calibrated (n=2) on an iPhone; null elsewhere
 estimate.fit;         // fits (2810 MB spare), basis measured
 
@@ -52,7 +52,7 @@ both can `import 'package:flutter/material.dart' hide Interval;`.
 | Available memory | `os_proc_available_memory`, the process's budget, basis `measured` | `ActivityManager.MemoryInfo.availMem`, basis `measured`, plus `lowMemory` and `threshold` |
 | Thermal, power | `ProcessInfo.thermalState`, Low Power Mode, `UIDevice` battery | `PowerManager.currentThermalStatus` folded as below, Battery Saver, `BatteryManager` |
 | Device | uname identifier, iOS version and build | `Build.MANUFACTURER MODEL`, `Build.SOC_MANUFACTURER SOC_MODEL` (API 31+, else `unknown`), `Build.VERSION.RELEASE`, `Build.ID` |
-| Predictions | peak and sustained intervals, basis `calibrated (n=1)` and `(n=2)` | `unknown`, with the note "no Android calibration yet" |
+| Predictions | peak and sustained intervals, basis `calibrated (n=2)` | `unknown`, with the note "no Android calibration yet" |
 
 A probe never allocates past what the OS reports as available: if the three
 arrays would not fit, that probe is skipped and the warning says so. In the
@@ -89,11 +89,25 @@ arithmetic row by row.
 |---|---|---|---|---|---|
 | A15 Bionic (iPhone 13) | 42.8012 | 27.221 | pending (null) | — | PocketRoofline SISO, warm start, unplugged |
 | Apple M1 (MacBook Pro 2020) | 61.1016 | 38.860 | 56.000 (median of 3 runs) | 0.6939 | PocketRoofline SISO; ceiling from `headroom-probe` on the same machine |
+| A16 Bionic (iPhone 15 Plus) | 65.1648 | 41.444 | 45.317 (median of 4 probes) | 0.9145 | PocketRoofline app SISO, warm start, live UI on screen, battery, airplane mode; ceiling from the Headroom demo on the same phone |
+
+η is the range 0.6939–0.9145, basis `calibrated (n=2)`: decode used 69% of
+the measured ceiling on the M1 and 91% on the A16, and the estimator keeps
+the whole range, so every upper bound is 1.32 × what the M1 alone gave. The
+A16 joined after the Swift package's first out-of-sample test: a prediction
+for that phone, made from the M1 alone, missed by 32%. The package's README
+has the result.
 
 | Sustained factor | Peak → sustained | Factor | Source |
 |---|---|---|---|
 | A15 Bionic, llama.cpp-Metal | 42.80 → 30.93 after 5 × 1024-token generations | 0.7227 | PocketRoofline SILO |
 | A18 Pro (iPhone 16 Pro), MLX | 40.49 → 23.67 over 20 runs | 0.5846 | arXiv:2603.23640 |
+| A16 Bionic (iPhone 15 Plus), llama.cpp-Metal | 65.16 → 27.16 on the 5th 1024-token generation, run straight after LISO | 0.4169 | PocketRoofline app SILO; the step into it is unexplained |
+
+The sustained range is 0.4169–0.7227, basis `calibrated (n=3)`. The A16
+factor comes from a halving of decode speed, not yet explained, at the
+boundary between two benchmark regimes; it is included because it widens
+the range.
 
 Every calibration device is an Apple SoC with a Metal-measured ceiling, which
 is why Android gets no η: a prediction there would be a borrowed constant,
@@ -145,11 +159,13 @@ CPU figures `unknown` because a package cannot carry per-target flags.
 - **No Android calibration.** Android reports a CPU ceiling, memory and
   conditions, but no throughput prediction: there is no GPU probe and no
   Android row in the calibration.
-- **Calibrated on n = 1 device today**, an M1 Mac. The A15 row is pending the
-  iPhone 13 run; the first independent validation of the Swift package is
-  pending with it.
-- **The thermal factor is from two phones on two runtimes**, presented as a
-  range, not a curve for any particular device.
+- **Calibrated on n = 2 devices**, an M1 Mac and an A16 iPhone, whose η differ
+  by a factor of 1.32; every interval carries that spread. The Swift
+  package's one out-of-sample test so far, on the A16 before it joined the
+  calibration, missed by 32%. The A15 row is pending the iPhone 13 run.
+- **The thermal factor is from three phones on two runtimes**, presented as a
+  range, not a curve for any particular device. Its lowest value, the A16's,
+  is not yet explained.
 - **Model geometry must be verified.** A spec built from file size alone
   omits the KV cache; the estimate says so. Only two presets ship, both read
   from GGUF headers with their file hashes in `ModelSpec`.
@@ -166,8 +182,10 @@ this was built.
 
 ## Status
 
-- Unit tests (`flutter test`): 64, including the Swift fixture numbers and the
-  bit-for-bit statistics check against the committed M1 run.
+- Unit tests (`flutter test`): 69, including the Swift fixture numbers, the
+  A16 rows recomputed from their raw records, and the bit-for-bit statistics
+  check against the committed M1 run and the four iPhone 15 Plus probes taken
+  with the Swift package's demo app.
 - End to end: run on the iOS Simulator and the Android Emulator through
   `example/integration_test/probe_test.dart`; those figures are the host
   machine's. No physical phone has been probed through the plugin yet.

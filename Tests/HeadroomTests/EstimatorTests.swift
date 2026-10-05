@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Headroom
 
@@ -18,6 +19,81 @@ import Testing
         let achieved = Calibration.achievedGBps(decodeTokPerSec: decode, bytesPerToken: Fixtures.tensorBytes)
         #expect(abs(achieved - 38.9) < 0.05)
         #expect(abs(achieved - 38.860) < 0.001)
+    }
+
+    @Test func a16AchievedBandwidthReproduces() throws {
+        let decode = Fixtures.mean(try Fixtures.a16Capture().decodeRates("SISO"))
+        #expect(abs(decode - 65.1648) < 0.5e-4)
+        let achieved = Calibration.achievedGBps(decodeTokPerSec: decode, bytesPerToken: Fixtures.tensorBytes)
+        #expect(abs(achieved - 41.444) < 0.5e-3)
+    }
+
+    /// The calibration as it stood when the iPhone 15 Plus prediction was
+    /// pre-registered: the shipped rows without the A16's.
+    static func calibrationBeforeTheA16() -> Calibration {
+        let shipped = Calibration.shipped
+        return Calibration(
+            bandwidth: shipped.bandwidth.filter { $0.soc != "A16 Bionic" },
+            sustained: shipped.sustained.filter { $0.soc != "A16 Bionic" }
+        )
+    }
+
+    /// The probe the pre-registered rule selects: of the first three, the one
+    /// whose GPU triad median is the middle value.
+    static func preRegisteredA16Report() throws -> ProbeReport {
+        let firstThree = Array(try Fixtures.a16Probes().prefix(3))
+        let middle = try Fixtures.ceilingGBps(of: firstThree)
+        guard let report = firstThree.first(where: { $0.gpu?.triad.medianGBps.value == middle }) else {
+            throw Fixtures.MissingRecord(description: "no probe has the middle triad median")
+        }
+        return report
+    }
+
+    /// The out-of-sample result in Calibration/predictions/2026-10-05-iphone15plus-a16.md,
+    /// reproduced from the committed records: the n = 1 prediction and the
+    /// measured rates it missed.
+    @Test func preRegisteredA16PredictionReproducesAndMissed() throws {
+        let report = try Self.preRegisteredA16Report()
+        #expect(report.capturedAt == Date(timeIntervalSince1970: 1_791_162_333))
+        let before = Self.calibrationBeforeTheA16()
+        #expect(before.efficiency.basis == .calibrated(devices: 1))
+
+        func hundredths(_ value: Double) -> Double { (value * 100).rounded() / 100 }
+
+        let peak = report.estimate(.tinyLlama1_1BQ4_0, contextTokens: 128, calibration: before).peak
+        #expect(hundredths(peak.low) == 48.15)
+        #expect(hundredths(peak.high) == 49.34)
+
+        let capture = try Fixtures.a16Capture()
+        let measured = Fixtures.mean(try capture.decodeRates("SISO"))
+        #expect(measured > peak.high)
+        #expect(((measured / peak.high - 1) * 1000).rounded() / 10 == 32.1)
+
+        let sustained = try #require(report.estimate(.tinyLlama1_1BQ4_0, contextTokens: 1024, calibration: before).sustained)
+        #expect(hundredths(sustained.low) == 27.29)
+        #expect(hundredths(sustained.high) == 34.57)
+        let lastSILO = try #require(try capture.decodeRates("SILO").last)
+        #expect(lastSILO < sustained.low)
+    }
+
+    /// Adding the A16 leaves every lower bound where the M1 alone put it and
+    /// raises every upper bound by η(A16) / η(M1): the intervals widen, they
+    /// do not move. On the A16's own probe this estimate is in-sample.
+    @Test func theA16WidensEveryIntervalByTheEfficiencyRatio() throws {
+        let report = try Self.preRegisteredA16Report()
+        let before = Self.calibrationBeforeTheA16()
+        let after = Calibration.shipped
+        let ratio = after.efficiency.high / before.efficiency.high
+        #expect(after.efficiency.low == before.efficiency.low)
+        #expect(ratio > 1.3 && ratio < 1.35)
+
+        for context in [0, 128, 1024, 2048] {
+            let old = report.estimate(.tinyLlama1_1BQ4_0, contextTokens: context, calibration: before).peak
+            let new = report.estimate(.tinyLlama1_1BQ4_0, contextTokens: context, calibration: after).peak
+            #expect(new.low == old.low)
+            #expect(abs(new.high / old.high - ratio) < 1e-12)
+            #expect(new.basis == .calibrated(devices: 2))
+        }
     }
 
     @Test func kvCacheBytesFollowTheFormula() {

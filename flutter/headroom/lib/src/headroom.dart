@@ -11,7 +11,7 @@ import 'probe_report.dart';
 /// final report = await Headroom.probe();          // one to two seconds
 /// report.ceilingGBps;                              // Quantity(57.4, basis: measured) on iOS
 /// final estimate = report.estimate(ModelSpec.tinyLlama1_1BQ4_0, contextTokens: 1024);
-/// estimate.peak;                                   // Interval, basis calibrated (n=1) on iOS, unknown on Android
+/// estimate.peak;                                   // Interval, basis calibrated (n=2) on iOS, unknown on Android
 /// ```
 abstract final class Headroom {
   /// This plugin's version.

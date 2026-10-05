@@ -48,4 +48,33 @@ void main() {
     expect(recomputed.medianCI95GBps.low, 43.66421006660162);
     expect(recomputed.medianCI95GBps.high, 45.00636064006006);
   });
+
+  /// The same check on a phone: the four iPhone 15 Plus probes the A16
+  /// ceiling comes from, computed by the Swift core on iOS.
+  test('every figure of the committed iPhone probes recomputes', () {
+    final probes = Fixtures.a16Probes();
+    expect(probes, hasLength(4));
+    for (final probe in probes) {
+      final cpu = probe.cpu!;
+      final figures = [
+        ...probe.gpu!.figures,
+        cpu.triad,
+        for (final attempt in cpu.attempts) attempt.triad,
+      ];
+      for (final figure in figures) {
+        final recomputed = BandwidthFigure.fromIterations(
+          kernel: figure.kernel,
+          bytesPerIteration: figure.bytesPerIteration,
+          iterationSeconds: figure.iterationSeconds,
+          verified: figure.verified,
+          basis: figure.medianGBps.basis,
+        );
+        expect(
+          recomputed,
+          figure,
+          reason: '${probe.capturedAt} ${figure.kernel.name}',
+        );
+      }
+    }
+  });
 }

@@ -125,10 +125,15 @@ void main() {
       expect(estimate.sustained?.isKnown ?? false, isFalse);
     } else if (platform.isApple) {
       expect(estimate.peak.isKnown, isTrue);
-      expect(estimate.peak.basis, const Basis.calibrated(devices: 1));
+      // η spans two devices (the M1 and the A16).
+      expect(estimate.efficiency.basis, const Basis.calibrated(devices: 2));
+      expect(estimate.peak.basis, const Basis.calibrated(devices: 2));
       expect(estimate.peak.low, greaterThan(0));
       expect(estimate.peak.low, lessThanOrEqualTo(estimate.peak.high));
       if (platform == HeadroomPlatform.iOS) {
+        // The sustained factor spans three phones; the product with the peak
+        // takes the smaller count, η's two.
+        expect(estimate.sustainedFactor?.basis, const Basis.calibrated(devices: 3));
         expect(estimate.sustained?.basis, const Basis.calibrated(devices: 2));
       } else {
         expect(estimate.sustained, isNull);
