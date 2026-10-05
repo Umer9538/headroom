@@ -48,6 +48,7 @@ struct ProbeView: View {
             }
             .navigationTitle("Headroom")
         }
+        .task { await model.autoProbeIfRequested() }
     }
 }
 

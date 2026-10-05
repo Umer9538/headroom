@@ -49,6 +49,8 @@ targets:
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UILaunchScreen: {}
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
         UIRequiredDeviceCapabilities: [arm64, metal]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
 

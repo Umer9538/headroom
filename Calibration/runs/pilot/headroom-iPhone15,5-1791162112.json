@@ -1,0 +1,291 @@
+{
+  "capturedAt" : "2026-10-05T01:01:52Z",
+  "conditions" : {
+    "batteryLevel" : 0.550000011920929,
+    "isLowPowerModeEnabled" : false,
+    "powerSource" : "external",
+    "thermalState" : "serious"
+  },
+  "cpu" : {
+    "arrayBytes" : 67108864,
+    "attempts" : [
+      {
+        "threads" : 2,
+        "triad" : {
+          "bestGBps" : {
+            "basis" : {
+              "kind" : "measured"
+            },
+            "value" : 48.31210537112434
+          },
+          "bytesPerIteration" : 201326592,
+          "iterationSeconds" : [
+            0.004789791999996851,
+            0.004307583000013437,
+            0.00417299999998022,
+            0.0042400000000100135,
+            0.0043266659999972035,
+            0.004205166999980747,
+            0.004167208000012579
+          ],
+          "kernel" : "triad",
+          "medianCI95GBps" : {
+            "basis" : {
+              "kind" : "measured"
+            },
+            "high" : 48.24504960482968,
+            "low" : 46.531576969456424
+          },
+          "medianGBps" : {
+            "basis" : {
+              "kind" : "measured"
+            },
+            "value" : 47.482686792340694
+          },
+          "verified" : true
+        }
+      },
+      {
+        "threads" : 6,
+        "triad" : {
+          "bestGBps" : {
+            "basis" : {
+              "kind" : "measured"
+            },
+            "value" : 42.16594852989878
+          },
+          "bytesPerIteration" : 201326592,
+          "iterationSeconds" : [
+            0.004800791000008076,
+            0.005077249999999367,
+            0.004827833000007331,
+            0.004845458000005465,
+            0.004920291999980009,
+            0.004875583999989885,
+            0.004774625000010246
+          ],
+          "kernel" : "triad",
+          "medianCI95GBps" : {
+            "basis" : {
+              "kind" : "measured"
+            },
+            "high" : 41.93612927529263,
+            "low" : 40.917610581001696
+          },
+          "medianGBps" : {
+            "basis" : {
+              "kind" : "measured"
+            },
+            "value" : 41.549548463689696
+          },
+          "verified" : true
+        }
+      }
+    ],
+    "compiledWithOptimisation" : true,
+    "threads" : 2,
+    "triad" : {
+      "bestGBps" : {
+        "basis" : {
+          "kind" : "measured"
+        },
+        "value" : 48.31210537112434
+      },
+      "bytesPerIteration" : 201326592,
+      "iterationSeconds" : [
+        0.004789791999996851,
+        0.004307583000013437,
+        0.00417299999998022,
+        0.0042400000000100135,
+        0.0043266659999972035,
+        0.004205166999980747,
+        0.004167208000012579
+      ],
+      "kernel" : "triad",
+      "medianCI95GBps" : {
+        "basis" : {
+          "kind" : "measured"
+        },
+        "high" : 48.24504960482968,
+        "low" : 46.531576969456424
+      },
+      "medianGBps" : {
+        "basis" : {
+          "kind" : "measured"
+        },
+        "value" : 47.482686792340694
+      },
+      "verified" : true
+    }
+  },
+  "device" : {
+    "identifier" : "iPhone15,5",
+    "logicalCPUs" : 6,
+    "osBuild" : "24A437",
+    "osVersion" : "27.0",
+    "platform" : "iOS"
+  },
+  "durationSeconds" : 0.566367333,
+  "gpu" : {
+    "add" : {
+      "bestGBps" : {
+        "basis" : {
+          "kind" : "measured"
+        },
+        "value" : 45.370011859303496
+      },
+      "bytesPerIteration" : 402653184,
+      "iterationSeconds" : [
+        0.00938620833332493,
+        0.009646291666655316,
+        0.00910987500000715,
+        0.009262375000020029,
+        0.009333958333343162,
+        0.00904829166665877,
+        0.008917124999982207,
+        0.009418750000008913,
+        0.008874875000003613,
+        0.009206541666657131
+      ],
+      "kernel" : "add",
+      "medianCI95GBps" : {
+        "basis" : {
+          "kind" : "measured"
+        },
+        "high" : 44.67734205994934,
+        "low" : 42.89838555686158
+      },
+      "medianGBps" : {
+        "basis" : {
+          "kind" : "measured"
+        },
+        "value" : 43.60373390551602
+      },
+      "verified" : true
+    },
+    "arrayBytes" : 134217728,
+    "copy" : {
+      "bestGBps" : {
+        "basis" : {
+          "kind" : "measured"
+        },
+        "value" : 45.11172769606545
+      },
+      "bytesPerIteration" : 268435456,
+      "iterationSeconds" : [
+        0.006615124999996169,
+        0.006463250000024345,
+        0.0063648333333503615,
+        0.00667845833331171,
+        0.006052583333342909,
+        0.006570250000009992,
+        0.00597350000001029,
+        0.006598249999996142,
+        0.005950458333330744,
+        0.0061621666666553665
+      ],
+      "kernel" : "copy",
+      "medianCI95GBps" : {
+        "basis" : {
+          "kind" : "measured"
+        },
+        "high" : 44.35055929279376,
+        "low" : 40.68282590083082
+      },
+      "medianGBps" : {
+        "basis" : {
+          "kind" : "measured"
+        },
+        "value" : 41.85368146246348
+      },
+      "verified" : true
+    },
+    "deviceName" : "Apple A16 GPU",
+    "scale" : {
+      "bestGBps" : {
+        "basis" : {
+          "kind" : "measured"
+        },
+        "value" : 46.87907721193955
+      },
+      "bytesPerIteration" : 268435456,
+      "iterationSeconds" : [
+        0.005930041666658781,
+        0.005765999999994165,
+        0.005757083333321589,
+        0.0066487916666915226,
+        0.005726124999995363,
+        0.005791791666666768,
+        0.005804791666662368,
+        0.005742333333330407,
+        0.005886124999989306,
+        0.0057356249999998
+      ],
+      "kernel" : "scale",
+      "medianCI95GBps" : {
+        "basis" : {
+          "kind" : "measured"
+        },
+        "high" : 46.746756138643434,
+        "low" : 45.60478345269387
+      },
+      "medianGBps" : {
+        "basis" : {
+          "kind" : "measured"
+        },
+        "value" : 46.451225371575475
+      },
+      "verified" : true
+    },
+    "triad" : {
+      "bestGBps" : {
+        "basis" : {
+          "kind" : "measured"
+        },
+        "value" : 45.42033744906247
+      },
+      "bytesPerIteration" : 402653184,
+      "iterationSeconds" : [
+        0.008908750000017562,
+        0.009569499999997788,
+        0.009511125000017273,
+        0.009309291666653507,
+        0.009270749999984673,
+        0.009004874999988033,
+        0.009069500000009612,
+        0.009184375000018008,
+        0.008865041666666684,
+        0.008939999999995507
+      ],
+      "kernel" : "triad",
+      "medianCI95GBps" : {
+        "basis" : {
+          "kind" : "measured"
+        },
+        "high" : 45.039506040291094,
+        "low" : 42.88380658397611
+      },
+      "medianGBps" : {
+        "basis" : {
+          "kind" : "measured"
+        },
+        "value" : 44.11875630524441
+      },
+      "verified" : true
+    }
+  },
+  "headroomVersion" : "0.1.0",
+  "memory" : {
+    "availableBytes" : {
+      "basis" : {
+        "kind" : "measured"
+      },
+      "value" : 3201759488
+    },
+    "physicalBytes" : 5936857088
+  },
+  "schemaVersion" : 1,
+  "warnings" : [
+
+  ]
+}

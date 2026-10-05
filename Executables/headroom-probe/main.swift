@@ -3,9 +3,19 @@ import Headroom
 
 // Prints the full report as JSON, then the TinyLlama estimate so the M1
 // prediction can be compared with PocketRoofline's measured decode rate.
+//
+// `headroom-probe --from report.json` skips the probe and estimates from a
+// report captured elsewhere, such as a phone's, using this build's calibration.
 
-let report = try await Headroom.probe()
-print(String(decoding: try report.jsonData(), as: UTF8.self))
+let arguments = CommandLine.arguments
+let report: ProbeReport
+if let flag = arguments.firstIndex(of: "--from"), arguments.indices.contains(flag + 1) {
+    report = try ProbeReport(jsonData: Data(contentsOf: URL(filePath: arguments[flag + 1])))
+    print("Report captured \(report.capturedAt.formatted(.iso8601)), read from \(arguments[flag + 1])")
+} else {
+    report = try await Headroom.probe()
+    print(String(decoding: try report.jsonData(), as: UTF8.self))
+}
 print()
 
 func gbps(_ figure: BandwidthFigure) -> String {
